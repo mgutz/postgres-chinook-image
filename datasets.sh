@@ -22,6 +22,13 @@ declare -A URL=(
 	#[world]=https://ftp.postgresql.org/pub/projects/pgFoundry/dbsamples/world/world-1.0/world-1.0.tar.gz
 )
 
+seed_file_sh="/docker-entrypoint-initdb.d/seed.sh"
+cat <<EOF >"$seed_file_sh"
+#!/bin/bash
+EOF
+chmod a+x "$seed_file_sh"
+
+mkdir /etc/seed.d
 for DATASET in "${!SQL[@]}"; do
 	export DATASET_URL="${URL[$DATASET]}"
 	declare -a DATASET_SQL="${SQL[$DATASET]}"
@@ -38,18 +45,29 @@ for DATASET in "${!SQL[@]}"; do
 		elif [[ $DATASET_URL == *.git ]]; then
 			git clone $DATASET_URL
 		fi
-		echo "CREATE DATABASE $DATASET;" >>"/docker-entrypoint-initdb.d/${DATASET}.sql"
-		echo "\c $DATASET;" >>"/docker-entrypoint-initdb.d/${DATASET}.sql"
+
+        seed_file_sql="/etc/seed.d/${DATASET}"
+        cat <<EOF >"$seed_file_sql"
+CREATE DATABASE $DATASET;
+\\c $DATASET;
+EOF
 		for i in "${!DATASET_SQL[@]}"; do
-			cat "${DATASET_SQL[i]}" >>"/docker-entrypoint-initdb.d/${DATASET}.sql"
+			cat "${DATASET_SQL[i]}" >>"$seed_file_sql"
 		done
 
-        # backup_script="/docker-entrypoint-initdb.d/ZZ-${DATASET}.sh"
-        # echo "#!/bin/sh" > "$backup_script"
-        # echo "mkdir -p /backups" >> "$backup_script"
-        # echo "pg_dump -U postgres --format custom '$DATASET' > '/backups/$DATASET.pgdata'" >> "$backup_script"
-        # chmod a+x "$backup_script"
-
+        cat <<EOF >>"$seed_file_sh"
+echo -n Seeding $DATASET \(be patient\)...
+psql --echo-errors --quiet -f "$seed_file_sql"
+echo OK
+EOF
 		#rm -rf *
 	fi
 done
+
+cat <<EOF >>"$seed_file_sh"
+    echo "Stopping postgres ..."
+    pg_ctl -m smart stop
+    echo OK
+    exit
+EOF
+

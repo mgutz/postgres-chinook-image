@@ -1,19 +1,8 @@
 FROM postgres:12-alpine
 
-RUN apk add --no-cache bash ca-certificates git wget \
-    && apk del --purge bash ca-certificates git wget
-
 # Don't override this value. Do not use this value for `POSTGRES_USER`. We're making this change to
 # to make sure the default database created by the `postgres` base image does not interfere with
 # our database creation while populating data.
 ENV POSTGRES_DB donotuse
-ARG DATASETS=chinook
-
-COPY datasets.sh /tmp
-
-WORKDIR /tmp
-
-# downloads and generates init scripts to hydrate chinook DB on first run
-# of container
-RUN bash /tmp/datasets.sh
+COPY ./mntdata /var/lib/postgresql/data
 

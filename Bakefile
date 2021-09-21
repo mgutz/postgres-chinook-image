@@ -1,15 +1,29 @@
 vendor="postgres"
-tag="mgutz/chinook:$vendor"
+version="12"
+tag="mgutz/chinook:$vendor-$version"
+data_mount="$(pwd)/mntdata"
+
+remove-mount() {
+	sudo rm -rf $data_mount
+}
 
 #. Builds the seed database from which a backup is made
 build-seed() {
-	echo building the initial database
+	remove-mount
+	echo Building the seed image
 	docker build -t "$tag-seed" -f Dockerfile-seed .
 }
 
 #. Seeds the database w/ chinook data
 run-seed() {
-	docker run --name chinook-seed -e 'POSTGRES_PASSWORD=password' --rm $tag-seed
+	remove-mount
+	mkdir "$data_mount"
+	#-e 'PGDATA=/var/lib/postgresql/data/chinook' \
+	docker run --name chinook-seed \
+		--rm \
+		--mount type=bind,source="$data_mount",target=/var/lib/postgresql/data \
+		-e 'POSTGRES_PASSWORD=password' \
+		"$tag-seed"
 }
 
 #. Makes a backup of seeded data
@@ -19,6 +33,23 @@ dump-seed() {
 
 #. Builds the final image.
 build-final() {
-	docker build -t $tag -f Dockerfile-final .
-	echo Image mgutz/chinook:postgres is ready
+	# owned by postgres in seed container
+	sudo chown -R $(id -u):$(id -g) $data_mount
+	docker build -t $tag .
+	docker tag $tag ghcr.io/$tag
+}
+
+run-final() {
+	docker run --rm -e 'POSTGRES_PASSWORD=password' --name chinook-sample ghcr.io/$tag
+}
+
+perform-query() {
+	docker exec chinook-sample psql -U postgres -d chinook -c 'select * from album limit 10'
+}
+
+#. Cleans images
+clean() {
+	docker rmi "$tag-seed"
+	docker rmi "$tag"
+	docker rmi "ghcr.io/$tag"
 }
