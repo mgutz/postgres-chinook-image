@@ -1,6 +1,6 @@
 vendor="postgres"
 version="12"
-tag="mgutz/chinook:$vendor-$version"
+tag="${tag:-mgutz/chinook:$vendor-$version}"
 data_mount="$(pwd)/mntdata"
 
 remove-mount() {
@@ -52,4 +52,13 @@ clean() {
 	docker rmi "$tag-seed"
 	docker rmi "$tag"
 	docker rmi "ghcr.io/$tag"
+}
+
+#. Publish image to github container registry
+publish() {
+	[ -z "$CR_PAT" ] && {
+		echo CR_PAT env variable is not set. Container registry personal access token is required..
+		exit 1
+	}
+	docker push "ghcr.io/$tag"
 }
