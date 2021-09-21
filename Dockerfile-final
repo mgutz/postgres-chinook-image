@@ -1,0 +1,12 @@
+FROM postgres:12-alpine
+
+# Don't override this value. Do not use this value for `POSTGRES_USER`. We're making this change to
+# to make sure the default database created by the `postgres` base image does not interfere with
+# our database creation while populating data.
+ENV POSTGRES_DB donotuse
+ENV DUMP_FILE=/docker-entrypoint-initdb.d/chinook.pgdata
+
+COPY chinook.pgdata $DUMP_FILE
+COPY 10-restore.sh /docker-entrypoint-initdb.d/10-restore.sh
+
+

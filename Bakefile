@@ -1,0 +1,24 @@
+vendor="postgres"
+tag="mgutz/chinook:$vendor"
+
+#. Builds the seed database from which a backup is made
+build-seed() {
+	echo building the initial database
+	docker build -t "$tag-seed" -f Dockerfile-seed .
+}
+
+#. Seeds the database w/ chinook data
+run-seed() {
+	docker run --name chinook-seed -e 'POSTGRES_PASSWORD=password' --rm $tag-seed
+}
+
+#. Makes a backup of seeded data
+dump-seed() {
+	docker exec -e 'POSTGRES_PASSWORD=password' chinook-seed pg_dump -U postgres --format custom chinook > chinook.pgdata
+}
+
+#. Builds the final image.
+build-final() {
+	docker build -t $tag -f Dockerfile-final .
+	echo Image mgutz/chinook:postgres is ready
+}
