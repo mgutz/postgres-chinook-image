@@ -1,8 +1,8 @@
 # Postgres Chinook Sample Image
 
-PostgreSQL docker image that seeds with chinook sample data on first run.
-The image is useful for learning Postgres queries and/or unit testing
-a Postgres library with known relational data.
+PostgreSQL docker image seeded with known chinook sample data. The image is
+useful for learning Postgres queries and/or unit testing a Postgres library
+with known relational data.
 
 The sample databases from ftp.postgresql.org have minimal schemas. Chinook is
 more representative of a small e-commerce site.
@@ -42,3 +42,16 @@ to a final image.
 
 Each step corresponds to a `bake` task, namely: `build-seed`, `run-seed`,
 and 'build-final'
+
+## Credits
+
+Unfortunately I can't remember from where `datasets.sh` is based. If you
+know please submit a PR to give credit.
+
+The [chinook seed script](https://github.com/kohanyirobert/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_PostgreSql_SerialPKs_CaseInsensitive.sql)
+which differs from other scripts by lower casing all tables and identifiers and using
+`serial` for primary keys to better conform with PostgreSQL conventions.
+
+## LICENSE
+
+MIT licensed.
